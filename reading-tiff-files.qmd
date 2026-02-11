@@ -31,21 +31,80 @@ my_raster
 
 ## Integrity tests for all hazard layers
 
-Load the list of TIFF paths from `hazard_layers.csv` and test each file: existence, open with `terra`, and optional dimensions.
+Test each hazard TIFF (existence, open with `terra`, dimensions). Paths are defined below so this document runs standalone without `hazard_layers.csv`.
 
 ```{r}
 library(fs)
 library(terra)
 library(dplyr)
 
-# Path to CSV (relative to this qmd: backend/data/debug/ -> backend/data/)
-csv_path <- "../hazard_layers.csv"
-if (!file_exists(csv_path)) {
-  stop("hazard_layers.csv not found at ", csv_path)
-}
-layers <- read.delim(csv_path, sep = ";", encoding = "UTF-8", check.names = FALSE)
-layers$dataset_url <- trimws(as.character(layers$dataset_url))
-layers$hazard <- trimws(as.character(layers$hazard))
+# Self-contained list of hazard layers (same as hazard_layers.csv) so doc runs without the CSV
+base <- "/Data/shinydata/infrarisk"
+layers <- data.frame(
+  hazard = c(
+    "Peak Ground Acceleration PGA - 2475 Years",
+    "Peak Ground Acceleration PGA - 1500 Years",
+    "Peak Ground Acceleration PGA - 975 Years",
+    "Peak Ground Acceleration PGA - 475 Years",
+    "Peak Ground Acceleration PGA - 250 Years",
+    "Susceptibility Class of Landslides Triggered By Earthquakes",
+    "Susceptibility Class of Landslides Triggered By Precipitation - Existing climate",
+    "Susceptibility Class of Landslides Triggered By Precipitation - Lower bound",
+    "Susceptibility Class of Landslides Triggered By Precipitation - Upper bound",
+    "Tropical Cyclone Wind - 250 Years",
+    "Tropical Cyclone Wind Climate Change - 250 Years",
+    "Tropical Cyclone Wind - 100 Years",
+    "Tropical Cyclone Wind Climate Change - 100 Years",
+    "Tropical Cyclone Wind - 50 Years",
+    "Tropical Cyclone Wind Climate Change - 50 Years",
+    "Flood Hazard 1000 Years - Existing climate",
+    "Flood Hazard 100 Years - Existing climate",
+    "Flood Hazard 200 Years - Existing climate",
+    "Flood Hazard 50 Years - Existing climate",
+    "Flood Hazard 25 Years - Existing climate",
+    "Flood Hazard 10 Years - Existing climate",
+    "Flood Hazard 10 Years - SSP1 Lower bound",
+    "Flood Hazard 10 Years - SSP5 Upper bound",
+    "Drought hazard SPI-6 25-year return period - Existing climate",
+    "Drought hazard SPI-6 10-year return period - Existing climate",
+    "Average duration of a drought event (SPI-6) - Existing climate",
+    "Number of drought events in the analysed period (SPI-6) - Existing climate",
+    "Building Exposure Model (BEM) - Total",
+    "Population distribution (GHSL) 2020"
+  ),
+  dataset_url = c(
+    file.path(base, "PGA_2475y.tif"),
+    file.path(base, "PGA_1500y.tif"),
+    file.path(base, "PGA_975y.tif"),
+    file.path(base, "PGA_475y.tif"),
+    file.path(base, "PGA_250y.tif"),
+    file.path(base, "n1_mosaic_wgs84_opt.tif"),
+    file.path(base, "n2_mosaic_wgs84_opt.tif"),
+    file.path(base, "n3_mosaic_wgs84_opt.tif"),
+    file.path(base, "n4_mosaic_wgs84_opt.tif"),
+    file.path(base, "Wind_T250.tif"),
+    file.path(base, "Wind_CC_T250.tif"),
+    file.path(base, "Wind_T100.tif"),
+    file.path(base, "Wind_CC_T100.tif"),
+    file.path(base, "Wind_T50.tif"),
+    file.path(base, "Wind_CC_T50.tif"),
+    file.path(base, "global_pc_h1000glob.tif"),
+    file.path(base, "global_pc_h100glob.tif"),
+    file.path(base, "global_pc_h200glob.tif"),
+    file.path(base, "global_pc_h50glob.tif"),
+    file.path(base, "global_pc_h25glob.tif"),
+    file.path(base, "global_pc_h10glob.tif"),
+    file.path(base, "global_rcp26_h10glob.tif"),
+    file.path(base, "global_rcp85_h10glob.tif"),
+    file.path(base, "spi-06_past_sev1_GF.tif"),
+    file.path(base, "spi-06_past_sev2_GF.tif"),
+    file.path(base, "spi-06_past_dur_GF.tif"),
+    file.path(base, "spi-06_past_num_GF.tif"),
+    file.path(base, "bem_5x5_valfis.tif"),
+    file.path(base, "GHS_POP_E2020_GLOBE_R2022A_54009_1000_V1_0_wgs84_opt.tif")
+  ),
+  stringsAsFactors = FALSE
+)
 ```
 
 ### Per-file integrity checks
