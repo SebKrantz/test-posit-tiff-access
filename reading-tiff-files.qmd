@@ -21,10 +21,105 @@ file_is_there
 dir_ls("/Data/shinydata/infrarisk", recurse = TRUE)
 ```
 
-## read file
+## Read file
 
 ```{r}
 library(terra)
 my_raster <- rast(file_path)
 my_raster
+```
+
+## Integrity tests for all hazard layers
+
+Load the list of TIFF paths from `hazard_layers.csv` and test each file: existence, open with `terra`, and optional dimensions.
+
+```{r}
+library(fs)
+library(terra)
+library(dplyr)
+
+# Path to CSV (relative to this qmd: backend/data/debug/ -> backend/data/)
+csv_path <- "../hazard_layers.csv"
+if (!file_exists(csv_path)) {
+  stop("hazard_layers.csv not found at ", csv_path)
+}
+layers <- read.delim(csv_path, sep = ";", encoding = "UTF-8", check.names = FALSE)
+layers$dataset_url <- trimws(as.character(layers$dataset_url))
+layers$hazard <- trimws(as.character(layers$hazard))
+```
+
+### Per-file integrity checks
+
+For each `dataset_url`: check file exists, then try `terra::rast()`. Record success/failure and dimensions or error message.
+
+```{r}
+results <- vector("list", nrow(layers))
+for (i in seq_len(nrow(layers))) {
+  path <- layers$dataset_url[i]
+  name <- layers$hazard[i]
+  res <- list(
+    hazard = name,
+    path = path,
+    exists = file_exists(path),
+    read_ok = NA,
+    nrow = NA_integer_,
+    ncol = NA_integer_,
+    nlyr = NA_integer_,
+    error = NA_character_
+  )
+  if (!res$exists) {
+    res$error <- "File not found"
+    results[[i]] <- res
+    next
+  }
+  r <- tryCatch(terra::rast(path), error = identity)
+  if (inherits(r, "error")) {
+    res$read_ok <- FALSE
+    res$error <- conditionMessage(r)
+  } else {
+    res$read_ok <- TRUE
+    res$nrow <- nrow(r)
+    res$ncol <- ncol(r)
+    res$nlyr <- nlyr(r)
+  }
+  results[[i]] <- res
+}
+integrity <- bind_rows(results)
+```
+
+### Summary table
+
+```{r}
+integrity %>%
+  select(hazard, exists, read_ok, nrow, ncol, nlyr, error) %>%
+  knitr::kable()
+```
+
+### Failures only (missing or unreadable)
+
+```{r}
+failed <- integrity %>%
+  filter(!exists | isTRUE(!read_ok))
+if (nrow(failed) == 0) {
+  "All files exist and could be opened with terra."
+} else {
+  failed %>%
+    select(hazard, path, exists, read_ok, error) %>%
+    knitr::kable()
+}
+```
+
+### Counts
+
+```{r}
+list(
+  total = nrow(integrity),
+  exist = sum(integrity$exists, na.rm = TRUE),
+  read_ok = sum(integrity$read_ok %in% TRUE, na.rm = TRUE),
+  missing = sum(!integrity$exists, na.rm = TRUE),
+  failed_read = sum(integrity$exists & integrity$read_ok %in% FALSE, na.rm = TRUE)
+) %>%
+  as.data.frame() %>%
+  t() %>%
+  knitr::kable(col.names = "count")
 ```
