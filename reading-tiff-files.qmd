@@ -1,0 +1,30 @@
+---
+title: "read tiff files"
+format: html
+editor: visual
+---
+
+## Check if file exists
+
+### Check specific path
+
+```{r}
+library(fs)
+file_path <- "/Data/shinydata/infrarisk/PGA_2475y.tif"
+file_is_there <- file_exists(file_path)
+file_is_there
+```
+
+### List all available files if path not found
+
+```{r}
+dir_ls("/Data/shinydata/infrarisk", recurse = TRUE)
+```
+
+## read file
+
+```{r}
+library(terra)
+my_raster <- rast(file_path)
+my_raster
+```
